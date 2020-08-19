@@ -43,7 +43,7 @@ if __name__ == '__main__':
 			break
 		elif op == _instructions.OP_LDI:
 			break
-		elif op == _instructions.OP_LDR
+		elif op == _instructions.OP_LDR:
 			break
 		elif op == _instructions.OP_LEA:
 			break
