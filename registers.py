@@ -35,3 +35,7 @@ class Conditions(Enum):
   FL_POS = 1 << 0
   FL_ZRO = 1 << 1
   FL_NEG = 1 << 2
+
+class MemoryMappedRegisters(Enum):
+  MR_KBSR = 0xFE00
+  MR_KBDR = 0xFE02
