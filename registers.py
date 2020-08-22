@@ -1,6 +1,10 @@
 from enum import Enum
 from enum import auto
 
+# Register is a slot for storing a single value on the CPU.
+# Since LC3 has only a few registers, we are going to work around this by
+# loading values from memory into registers, calculating values into other registers,
+# and then storing the final results back in memory.
 class Registers(Enum):
   R_R0 = 0
   R_R1 = auto()
@@ -13,6 +17,9 @@ class Registers(Enum):
   R_COND = auto()
   R_COUNT = auto()
 
+# Instruction is a command which tells the CPU to do a task (ex: add 2 numbers).
+# Instructions have both an opcode which indicates the type of a task
+# and a set of parameters, whcih provide inputs to the task
 class Instructions(Enum):
 	OP_BR = 0,
 	OP_ADD = auto()
@@ -31,6 +38,7 @@ class Instructions(Enum):
 	OP_LEA = auto()
 	OP_TRAP	= auto()
 
+# Flags which provide information about the most recently executed calculation
 class Conditions(Enum):
   FL_POS = 1 << 0
   FL_ZRO = 1 << 1
