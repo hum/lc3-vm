@@ -1,7 +1,7 @@
 package vm
 
 import (
-  "fmt"
+	"fmt"
 )
 
 // REGISTERS
@@ -65,24 +65,24 @@ func GetCPU() *CPU {
 }
 
 func (cpu *CPU) Run() {
-  reg[R_PC] = cpu.StartPosition
+	reg[R_PC] = cpu.StartPosition
 
-  running := 0
-  for running < 1 {
-    var instruction uint16 = reg[R_PC]
-    var op uint16 = cpu.memRead(instruction) >> 12
-    reg[R_PC] = reg[R_PC] + 1
-    fmt.Println(instruction, op)
-  }
+	running := 0
+	for running < 1 {
+		var instruction uint16 = reg[R_PC]
+		var op uint16 = cpu.memRead(instruction) >> 12
+		reg[R_PC] = reg[R_PC] + 1
+		fmt.Println(instruction, op)
+	}
 }
 
 // TODO: implement, and move to RAM struct
 func (cpu *CPU) memRead(addr uint16) (value uint16) {
-  value = addr
-  return value
+	value = addr
+	return value
 }
 
 // TODO: implement, and move to RAM struct
 func (cpu *CPU) memWrite(addr uint16, value uint16) bool {
-  return false
+	return false
 }
