@@ -1,2 +1,2 @@
-# lc3-vm
-A Python implementation of the VM of LC3 computer
+# LC-3 VM
+Golang implementation of the [LC-3](https://en.wikipedia.org/wiki/Little_Computer_3).
