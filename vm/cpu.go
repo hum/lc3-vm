@@ -1,7 +1,7 @@
 package vm
 
 import (
-	"fmt"
+	"log"
 )
 
 // REGISTERS
@@ -51,38 +51,31 @@ const (
 	PC_START uint16 = 0x3000
 )
 
-// REGISTER STORAGE
-var reg [R_COUNT]uint16
-
 type CPU struct {
+	RAM           *RAM
+	reg           [R_COUNT]uint16
 	StartPosition uint16
 }
 
-func GetCPU() *CPU {
+func GetCPU(ram *RAM) *CPU {
 	return &CPU{
 		StartPosition: PC_START,
+		RAM:           ram,
 	}
 }
 
 func (cpu *CPU) Run() {
-	reg[R_PC] = cpu.StartPosition
+	cpu.reg[R_PC] = cpu.StartPosition
 
-	running := 0
-	for running < 1 {
-		var instruction uint16 = reg[R_PC]
-		var op uint16 = cpu.memRead(instruction) >> 12
-		reg[R_PC] = reg[R_PC] + 1
-		fmt.Println(instruction, op)
+	for {
+		var instruction uint16
+		if instruction, ok := cpu.RAM.MemRead(cpu.reg[R_PC]); ok != nil {
+			log.Printf("WARNING: MEM_READ out of range for value %x", instruction)
+			break
+		}
+		cpu.reg[R_PC] = cpu.reg[R_PC] + 1
+
+		var op uint16 = instruction >> 12
+		log.Printf("Instruction: %x, OP CODE: %x", instruction, op)
 	}
-}
-
-// TODO: implement, and move to RAM struct
-func (cpu *CPU) memRead(addr uint16) (value uint16) {
-	value = addr
-	return value
-}
-
-// TODO: implement, and move to RAM struct
-func (cpu *CPU) memWrite(addr uint16, value uint16) bool {
-	return false
 }
