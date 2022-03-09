@@ -69,7 +69,7 @@ func (cpu *CPU) Run() {
 
 	for {
 		var instruction uint16
-		if instruction, ok := cpu.RAM.MemRead(cpu.reg[R_PC]); !ok {
+		if instruction, err := cpu.RAM.MemRead(cpu.reg[R_PC]); err != nil {
 			log.Printf("WARNING: MEM_READ out of range for value %x", instruction)
 			break
 		}
