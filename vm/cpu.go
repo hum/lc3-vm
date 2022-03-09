@@ -69,7 +69,7 @@ func (cpu *CPU) Run() {
 
 	for {
 		var instruction uint16
-		if instruction, ok := cpu.RAM.MemRead(cpu.reg[R_PC]); ok != nil {
+		if instruction, ok := cpu.RAM.MemRead(cpu.reg[R_PC]); !ok {
 			log.Printf("WARNING: MEM_READ out of range for value %x", instruction)
 			break
 		}
@@ -112,4 +112,25 @@ func (cpu *CPU) Run() {
 			break
 		}
 	}
+}
+
+func (cpu *CPU) signExtend(x uint16, bitCount int) uint16 {
+	/* extends bits to size 16
+	fill positive with 0
+	fill negative with 1
+	*/
+	if (x >> (bitCount - 1)) & 1 {
+		x |= (0xFFFF << bitCount)
+	}
+	return x
+}
+
+func (cpu *CPU) updateFlags(r uint16) {
+	var sign uint16 = FL_POS // DEFAULT POSITIVE
+	if cpu.reg[r] == 0 {     // FLAG ZERO
+		sign = FL_ZERO
+	} else if cpu.reg[r] >> 15 { // FLAG NEGATIVE
+		sign = FL_NEG
+	}
+	reg[R_COND] = sign
 }
