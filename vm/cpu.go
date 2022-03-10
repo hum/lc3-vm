@@ -134,3 +134,18 @@ func (cpu *CPU) updateFlags(r uint16) {
 	}
 	reg[R_COND] = sign
 }
+
+func (cpu *CPU) add(op uint16) {
+	var r0 uint16 = (op >> 9) & 0x7
+	var r1 uint16 = (op >> 6) & 0x7
+	var immediate_mode uint16 = (op >> 5) & 0x1
+
+	if immediate_mode {
+		var imm5 uint16 = cpu.signExtend(op&0x1F, 5)
+		cpu.reg[r0] = cpu.reg[r1] + imm5
+	} else {
+		var r2 uint16 = op & 0x7
+		cpu.reg[r0] = cpu.reg[r1] + cpu.reg[r2]
+	}
+	cpu.updateFlags(r0)
+}
