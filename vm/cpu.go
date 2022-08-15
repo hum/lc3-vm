@@ -4,51 +4,8 @@ import (
 	"log"
 )
 
-// REGISTERS
 const (
-	R_R0 uint16 = iota
-	R_R1
-	R_R2
-	R_R3
-	R_R4
-	R_R5
-	R_R6
-	R_R7
-	R_PC    // program counter
-	R_COND  // condition flag
-	R_COUNT = 10
-)
-
-// OP CODES
-const (
-	OP_BR   uint16 = iota // branch
-	OP_ADD                // add
-	OP_LD                 // load
-	OP_ST                 // store
-	OP_JSR                // jump register
-	OP_AND                // bitwise and
-	OP_LDR                // load register
-	OP_STR                // store register
-	OP_RTI                // unused
-	OP_NOT                // bitwise not
-	OP_LDI                // load indirect
-	OP_STI                // store indirect
-	OP_JMP                // jump
-	OP_RES                // reserved (unused)
-	OP_LEA                // load effective address
-	OP_TRAP               // execute trap
-)
-
-// CONDITION FLAGS
-const (
-	FL_POS uint16 = 1 << 0 // positive
-	FL_ZRO uint16 = 1 << 1 // zero
-	FL_NEG uint16 = 1 << 2 // negative
-)
-
-// PROGRAM COUNTER STARTING REGISTER
-const (
-	PC_START uint16 = 0x3000
+	PC_START uint16 = 0x3000 // program counter starting register
 )
 
 type CPU struct {
@@ -67,6 +24,7 @@ func GetCPU(ram *RAM) *CPU {
 func (cpu *CPU) Run() {
 	cpu.reg[R_PC] = cpu.startPosition
 
+instr_loop:
 	for {
 		var instruction uint16
 		if instruction, err := cpu.RAM.MemRead(cpu.reg[R_PC]); err != nil {
@@ -79,37 +37,37 @@ func (cpu *CPU) Run() {
 		log.Printf("Instruction: %x, OP CODE: %x", instruction, op)
 		switch op {
 		case OP_BR:
-			cpu.branch(op)
+			//cpu.branch(op)
 		case OP_ADD:
 			cpu.add(op)
 		case OP_LD:
-			cpu.load(op)
+			//cpu.load(op)
 		case OP_ST:
-			cpu.store(op)
+			//cpu.store(op)
 		case OP_JSR:
-			cpu.jump(op)
+			//cpu.jump(op)
 		case OP_AND:
-			cpu.bitwiseAnd(op)
+			//cpu.bitwiseAnd(op)
 		case OP_LDR:
-			cpu.loadRegister(op)
+			//cpu.loadRegister(op)
 		case OP_STR:
-			cpu.storeRegister(op)
+			//cpu.storeRegister(op)
 		case OP_NOT:
-			cpu.bitwiseNot(op)
+			//cpu.bitwiseNot(op)
 		case OP_LDI:
-			cpu.loadIndirect(op)
+			//cpu.loadIndirect(op)
 		case OP_STI:
-			cpu.storeIndirect(op)
+			//cpu.storeIndirect(op)
 		case OP_JMP:
-			cpu.jump(op)
+			//cpu.jump(op)
 		case OP_LEA:
-			cpu.loadEffectiveAddr(op)
+			//cpu.loadEffectiveAddr(op)
 		case OP_TRAP:
 		case OP_RES:
 		case OP_RTI:
 		default:
 			log.Printf("ERROR: Invalid OP code %x. Quitting.", op)
-			break
+			break instr_loop
 		}
 	}
 }
@@ -119,7 +77,7 @@ func (cpu *CPU) signExtend(x uint16, bitCount int) uint16 {
 	fill positive with 0
 	fill negative with 1
 	*/
-	if (x >> (bitCount - 1)) & 1 {
+	if (x >> (bitCount - 1) & 1) > 0 {
 		x |= (0xFFFF << bitCount)
 	}
 	return x
@@ -128,19 +86,19 @@ func (cpu *CPU) signExtend(x uint16, bitCount int) uint16 {
 func (cpu *CPU) updateFlags(r uint16) {
 	var sign uint16 = FL_POS // DEFAULT POSITIVE
 	if cpu.reg[r] == 0 {     // FLAG ZERO
-		sign = FL_ZERO
-	} else if cpu.reg[r] >> 15 { // FLAG NEGATIVE
+		sign = FL_ZRO
+	} else if (cpu.reg[r] >> 15) != 0 { // FLAG NEGATIVE
 		sign = FL_NEG
 	}
-	reg[R_COND] = sign
+	cpu.reg[R_COND] = sign
 }
 
 func (cpu *CPU) add(op uint16) {
-	var r0 uint16 = (op >> 9) & 0x7
-	var r1 uint16 = (op >> 6) & 0x7
-	var immediate_mode uint16 = (op >> 5) & 0x1
+	var r0 uint16 = (op >> 9) & 0x7             // DR
+	var r1 uint16 = (op >> 6) & 0x7             // first operand
+	var immediate_mode uint16 = (op >> 5) & 0x1 // intermediate mode?
 
-	if immediate_mode {
+	if immediate_mode != 0 {
 		var imm5 uint16 = cpu.signExtend(op&0x1F, 5)
 		cpu.reg[r0] = cpu.reg[r1] + imm5
 	} else {

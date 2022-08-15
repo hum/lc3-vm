@@ -18,7 +18,7 @@ func GetRAM() *RAM {
 
 func (r *RAM) MemRead(addr uint16) (uint16, error) {
 	if addr >= MemSize {
-		return 0, fmt.Errorf("Addr %x is not within range %x.", addr, MemSize)
+		return 0, fmt.Errorf("addr %x is not within range %x", addr, MemSize)
 	}
 	return r.mem[addr], nil
 }
