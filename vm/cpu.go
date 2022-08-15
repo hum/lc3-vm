@@ -41,7 +41,7 @@ instr_loop:
 		case OP_ADD:
 			cpu.add(op)
 		case OP_LD:
-			//cpu.load(op)
+			cpu.load_indirect(op)
 		case OP_ST:
 			//cpu.store(op)
 		case OP_JSR:
@@ -93,17 +93,37 @@ func (cpu *CPU) updateFlags(r uint16) {
 	cpu.reg[R_COND] = sign
 }
 
-func (cpu *CPU) add(op uint16) {
-	var r0 uint16 = (op >> 9) & 0x7             // DR
-	var r1 uint16 = (op >> 6) & 0x7             // first operand
-	var immediate_mode uint16 = (op >> 5) & 0x1 // intermediate mode?
+func (cpu *CPU) add(instr uint16) {
+	/* in register mode, the second value to add is in a register
+	* in immediate mode, the second value is embedded
+	* in the right-most 5 bits of the instruction */
+	var r0 uint16 = (instr >> 9) & 0x7             // destination register
+	var r1 uint16 = (instr >> 6) & 0x7             // first operand
+	var immediate_mode uint16 = (instr >> 5) & 0x1 // intermediate mode? -- 5th bit 0 or 1?
 
 	if immediate_mode != 0 {
-		var imm5 uint16 = cpu.signExtend(op&0x1F, 5)
+		var imm5 uint16 = cpu.signExtend((instr & 0x1F), 5)
 		cpu.reg[r0] = cpu.reg[r1] + imm5
 	} else {
-		var r2 uint16 = op & 0x7
+		var r2 uint16 = instr & 0x7
 		cpu.reg[r0] = cpu.reg[r1] + cpu.reg[r2]
 	}
 	cpu.updateFlags(r0)
+}
+
+func (cpu *CPU) load_indirect(instr uint16) {
+	// loads value from mem into the cpu register
+	var r0 uint16 = (instr >> 9) & 0x7
+	var offset uint16 = cpu.signExtend((instr & 0x1FF), 9)
+
+	// add offset to PC, peek memory to get the final pointer address
+	finalMem, err := cpu.RAM.MemRead(cpu.reg[R_PC] + offset)
+	if err != nil {
+		panic(err)
+	}
+	v, err := cpu.RAM.MemRead(finalMem)
+	if err != nil {
+		panic(err)
+	}
+	cpu.reg[r0] = v
 }
