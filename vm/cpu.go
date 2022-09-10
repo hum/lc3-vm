@@ -26,15 +26,15 @@ func (cpu *CPU) Run() {
 
 instr_loop:
 	for {
-		var instruction uint16
-		if instruction, err := cpu.RAM.MemRead(cpu.reg[R_PC]); err != nil {
-			log.Printf("WARNING: MEM_READ out of range for value %x", instruction)
+		var instr uint16
+		if instr, err := cpu.RAM.MemRead(cpu.reg[R_PC]); err != nil {
+			log.Printf("WARNING: MEM_READ out of range for value %x", instr)
 			break
 		}
 		cpu.reg[R_PC] = cpu.reg[R_PC] + 1
 
-		var op uint16 = instruction >> 12
-		log.Printf("Instruction: %x, OP CODE: %x", instruction, op)
+		var op uint16 = instr >> 12
+		log.Printf("instr: %x, OP CODE: %x", instr, op)
 		switch op {
 		case OP_BR:
 			cpu.branch(op)
@@ -63,6 +63,20 @@ instr_loop:
 		case OP_JMP:
 			cpu.jump(op)
 		case OP_TRAP:
+			switch instr & 0xFF {
+			case TRAP_GETC:
+				break
+			case TRAP_OUT:
+				break
+			case TRAP_PUTS:
+				break
+			case TRAP_IN:
+				break
+			case TRAP_PUTSP:
+				break
+			case TRAP_HALT:
+				break
+			}
 		case OP_RES:
 		case OP_RTI:
 		default:
