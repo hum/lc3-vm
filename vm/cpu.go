@@ -48,12 +48,12 @@ instr_loop:
 			cpu.jump(op)
 		case OP_AND:
 			cpu.bitwiseAnd(op)
+		case OP_NOT:
+			cpu.bitwiseNot(op)
 		case OP_LDR:
-			//cpu.loadRegister(op)
+			cpu.loadRegister(op)
 		case OP_STR:
 			//cpu.storeRegister(op)
-		case OP_NOT:
-			//cpu.bitwiseNot(op)
 		case OP_LDI:
 			//cpu.loadIndirect(op)
 		case OP_STI:
@@ -174,4 +174,26 @@ func (cpu *CPU) branch(instr uint16) {
 	if condFlag&cpu.reg[R_COND] == 1 {
 		cpu.reg[R_PC] += pcOffset
 	}
+}
+
+func (cpu *CPU) bitwiseNot(instr uint16) {
+	var r0 uint16 = (instr >> 9) & 0x7 // Destination register
+	var r1 uint16 = (instr >> 6) & 0x7
+
+	// Bitwise complement
+	cpu.reg[r0] = ^cpu.reg[r1] // Using XOR instead
+	cpu.updateFlags(r0)
+}
+
+func (cpu *CPU) loadRegister(instr uint16) {
+	var r0 uint16 = (instr >> 9) & 0x7
+	var r1 uint16 = (instr >> 6) & 0x7
+	var memOffset uint16 = cpu.signExtend(instr&0x3F, 6)
+
+	v, err := cpu.RAM.MemRead(cpu.reg[r1] + memOffset)
+	if err != nil {
+		panic(err)
+	}
+	cpu.reg[r0] = v
+	cpu.updateFlags(r0)
 }
