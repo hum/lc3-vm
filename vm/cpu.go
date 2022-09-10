@@ -37,7 +37,7 @@ instr_loop:
 		log.Printf("Instruction: %x, OP CODE: %x", instruction, op)
 		switch op {
 		case OP_BR:
-			//cpu.branch(op)
+			cpu.branch(op)
 		case OP_ADD:
 			cpu.add(op)
 		case OP_LD:
@@ -165,4 +165,13 @@ func (cpu *CPU) bitwiseAnd(instr uint16) {
 		cpu.reg[r0] = cpu.reg[r1] & cpu.reg[r2]
 	}
 	cpu.updateFlags(r0)
+}
+
+func (cpu *CPU) branch(instr uint16) {
+	var pcOffset uint16 = cpu.signExtend(instr&0x1FF, 9)
+	var condFlag uint16 = (instr >> 9) & 0x7
+
+	if condFlag&cpu.reg[R_COND] == 1 {
+		cpu.reg[R_PC] += pcOffset
+	}
 }
