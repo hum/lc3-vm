@@ -41,7 +41,7 @@ instr_loop:
 		case OP_ADD:
 			cpu.add(op)
 		case OP_LD:
-			cpu.load_indirect(op)
+			cpu.loadIndirect(op)
 		case OP_JSR:
 			cpu.jump(op)
 		case OP_AND:
@@ -51,7 +51,7 @@ instr_loop:
 		case OP_LDR:
 			cpu.loadRegister(op)
 		case OP_LEA:
-			cpu.loadEffectiveAddr(op)
+			cpu.loadEffectiveAddress(op)
 		case OP_LDI:
 			cpu.loadIndirect(op)
 		case OP_ST:
@@ -59,9 +59,9 @@ instr_loop:
 		case OP_STR:
 			cpu.storeRegister(op)
 		case OP_STI:
-			//cpu.storeIndirect(op)
+			cpu.storeIndirect(op)
 		case OP_JMP:
-			//cpu.jump(op)
+			cpu.jump(op)
 		case OP_TRAP:
 		case OP_RES:
 		case OP_RTI:
@@ -204,6 +204,16 @@ func (cpu *CPU) loadEffectiveAddress(instr uint16) {
 
 	cpu.reg[r0] = cpu.reg[R_PC] + pcOffset
 	cpu.updateFlags(r0)
+}
+
+func (cpu *CPU) storeIndirect(instr uint16) {
+	var r0 uint16 = (instr >> 9) & 0x7
+	var pcOffset uint16 = cpu.signExtend(instr&0x1FF, 9)
+	v, err := cpu.RAM.MemRead(cpu.reg[R_PC] + pcOffset)
+	if err != nil {
+		panic(err)
+	}
+	cpu.RAM.MemWrite(v, cpu.reg[r0])
 }
 
 func (cpu *CPU) storeRegister(instr uint16) {
