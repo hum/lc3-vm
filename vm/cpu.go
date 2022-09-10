@@ -43,7 +43,7 @@ instr_loop:
 		case OP_LD:
 			cpu.load_indirect(op)
 		case OP_ST:
-			//cpu.store(op)
+			cpu.store(op)
 		case OP_JSR:
 			//cpu.jump(op)
 		case OP_AND:
@@ -126,4 +126,12 @@ func (cpu *CPU) load_indirect(instr uint16) {
 		panic(err)
 	}
 	cpu.reg[r0] = v
+}
+
+func (cpu *CPU) store(instr uint16) {
+	var r0 uint16 = (instr >> 9) & 0x7
+	var pcOffset uint16 = cpu.signExtend(instr&0x1FF, 9)
+
+	// stores value into mem from the first register
+	cpu.RAM.MemWrite(cpu.reg[R_PC]+pcOffset, cpu.reg[r0])
 }
