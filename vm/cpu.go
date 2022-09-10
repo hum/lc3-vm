@@ -47,7 +47,7 @@ instr_loop:
 		case OP_JSR:
 			cpu.jump(op)
 		case OP_AND:
-			//cpu.bitwiseAnd(op)
+			cpu.bitwiseAnd(op)
 		case OP_LDR:
 			//cpu.loadRegister(op)
 		case OP_STR:
@@ -146,4 +146,23 @@ func (cpu *CPU) jump(instr uint16) {
 
 	// Move program counter to the value of second register
 	cpu.reg[R_PC] = cpu.reg[r1]
+}
+
+func (cpu *CPU) bitwiseAnd(instr uint16) {
+	var r0 uint16 = (instr >> 9) & 0x7      // Destination register
+	var r1 uint16 = (instr >> 6) & 0x7      // Source register for value
+	var immFlag uint16 = (instr >> 5) & 0x1 // Immediate value
+
+	if immFlag == 1 {
+		// Sign extend to 16 bits
+		var imm5 uint16 = cpu.signExtend(instr&0x1F, 5)
+		// AND the values
+		cpu.reg[r0] = cpu.reg[r1] & imm5
+	} else {
+		// Get value from SR2
+		var r2 uint16 = instr & 0x7
+		// AND the values
+		cpu.reg[r0] = cpu.reg[r1] & cpu.reg[r2]
+	}
+	cpu.updateFlags(r0)
 }
