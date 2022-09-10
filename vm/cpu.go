@@ -45,7 +45,7 @@ instr_loop:
 		case OP_ST:
 			cpu.store(op)
 		case OP_JSR:
-			//cpu.jump(op)
+			cpu.jump(op)
 		case OP_AND:
 			//cpu.bitwiseAnd(op)
 		case OP_LDR:
@@ -84,19 +84,22 @@ func (cpu *CPU) signExtend(x uint16, bitCount int) uint16 {
 }
 
 func (cpu *CPU) updateFlags(r uint16) {
-	var sign uint16 = FL_POS // DEFAULT POSITIVE
-	if cpu.reg[r] == 0 {     // FLAG ZERO
+	// Default sign is positive
+	var sign uint16 = FL_POS
+	if cpu.reg[r] == 0 {
+		// If value in the register is zero
 		sign = FL_ZRO
-	} else if (cpu.reg[r] >> 15) != 0 { // FLAG NEGATIVE
+	} else if (cpu.reg[r] >> 15) == 1 {
+		// One (1) in the left-most bit indicates negative number
 		sign = FL_NEG
 	}
 	cpu.reg[R_COND] = sign
 }
 
 func (cpu *CPU) add(instr uint16) {
-	/* in register mode, the second value to add is in a register
-	* in immediate mode, the second value is embedded
-	* in the right-most 5 bits of the instruction */
+	// In register mode, the second value to add is in a register
+	// In immediate mode, the second value is embedded
+	// In the right-most 5 bits of the instruction
 	var r0 uint16 = (instr >> 9) & 0x7             // destination register
 	var r1 uint16 = (instr >> 6) & 0x7             // first operand
 	var immediate_mode uint16 = (instr >> 5) & 0x1 // intermediate mode? -- 5th bit 0 or 1?
@@ -112,11 +115,11 @@ func (cpu *CPU) add(instr uint16) {
 }
 
 func (cpu *CPU) load_indirect(instr uint16) {
-	// loads value from mem into the cpu register
+	// Loads value from mem into the cpu register
 	var r0 uint16 = (instr >> 9) & 0x7
 	var offset uint16 = cpu.signExtend((instr & 0x1FF), 9)
 
-	// add offset to PC, peek memory to get the final pointer address
+	// Add offset to PC, peek memory to get the final pointer address
 	finalMem, err := cpu.RAM.MemRead(cpu.reg[R_PC] + offset)
 	if err != nil {
 		panic(err)
@@ -132,6 +135,15 @@ func (cpu *CPU) store(instr uint16) {
 	var r0 uint16 = (instr >> 9) & 0x7
 	var pcOffset uint16 = cpu.signExtend(instr&0x1FF, 9)
 
-	// stores value into mem from the first register
+	// Stores value into mem from the first register
 	cpu.RAM.MemWrite(cpu.reg[R_PC]+pcOffset, cpu.reg[r0])
+}
+
+func (cpu *CPU) jump(instr uint16) {
+	// This also handles RET (return from subroutine)
+	// whenver R1 is 111 in binary (decimal 7)
+	var r1 uint16 = (instr >> 6) & 0x7
+
+	// Move program counter to the value of second register
+	cpu.reg[R_PC] = cpu.reg[r1]
 }
