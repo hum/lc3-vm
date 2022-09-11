@@ -271,6 +271,20 @@ func (cpu *CPU) trapPuts() {
 	WriteString(bout)
 }
 
+func (cpu *CPU) trapPutsP() {
+	var ch uint16 = cpu.reg[R_R0]
+
+	for {
+		var c1 uint16 = ch & 0xFF
+		WriteChar(rune(c1))
+
+		var c2 uint16 = ch >> 8
+		if c2 {
+			WriteChar(rune(c2))
+		}
+	}
+}
+
 func (cpu *CPU) trapGetC() {
 	// Syscall to get char from STDIN
 	ch, err := GetChar()
