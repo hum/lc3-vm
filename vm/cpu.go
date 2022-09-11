@@ -78,9 +78,9 @@ instr_loop:
 			case TRAP_IN:
 				break
 			case TRAP_PUTSP:
-				break
+				cpu.trapPutsP()
 			case TRAP_HALT:
-				break
+				cpu.trapHalt()
 			}
 		case OP_RES:
 		case OP_RTI:
@@ -130,7 +130,7 @@ func (cpu *CPU) add(instr uint16) {
 		var r2 uint16 = instr & 0x7
 		cpu.reg[r0] = cpu.reg[r1] + cpu.reg[r2]
 	}
-	cpu.updateFlags(r0)
+	cpu.updateFlags(R_R0)
 }
 
 func (cpu *CPU) loadIndirect(instr uint16) {
@@ -183,7 +183,7 @@ func (cpu *CPU) bitwiseAnd(instr uint16) {
 		// AND the values
 		cpu.reg[r0] = cpu.reg[r1] & cpu.reg[r2]
 	}
-	cpu.updateFlags(r0)
+	cpu.updateFlags(R_R0)
 }
 
 func (cpu *CPU) branch(instr uint16) {
@@ -201,7 +201,7 @@ func (cpu *CPU) bitwiseNot(instr uint16) {
 
 	// Bitwise complement
 	cpu.reg[r0] = ^cpu.reg[r1] // Using XOR instead
-	cpu.updateFlags(r0)
+	cpu.updateFlags(R_R0)
 }
 
 func (cpu *CPU) loadRegister(instr uint16) {
@@ -214,7 +214,7 @@ func (cpu *CPU) loadRegister(instr uint16) {
 		panic(err)
 	}
 	cpu.reg[r0] = v
-	cpu.updateFlags(r0)
+	cpu.updateFlags(R_R0)
 }
 
 func (cpu *CPU) loadEffectiveAddress(instr uint16) {
@@ -222,7 +222,7 @@ func (cpu *CPU) loadEffectiveAddress(instr uint16) {
 	var pcOffset uint16 = cpu.signExtend(instr&0x1FF, 9)
 
 	cpu.reg[r0] = cpu.reg[R_PC] + pcOffset
-	cpu.updateFlags(r0)
+	cpu.updateFlags(R_R0)
 }
 
 func (cpu *CPU) storeIndirect(instr uint16) {
@@ -292,7 +292,7 @@ func (cpu *CPU) trapGetC() {
 		panic(err)
 	}
 	cpu.reg[R_R0] = uint16(ch)
-	cpu.updateFlags(cpu.reg[R_R0])
+	cpu.updateFlags(R_R0)
 }
 
 func (cpu *CPU) trapOut() {
@@ -302,4 +302,13 @@ func (cpu *CPU) trapOut() {
 func (cpu *CPU) trapHalt() {
 	log.Println("Halting the program")
 	running = 0
+}
+
+func (cpu *CPU) trapIn() {
+	c, err := GetChar()
+	if err != nil {
+		panic(err)
+	}
+	cpu.reg[R_R0] = uint16(c)
+	cpu.updateFlags(R_R0)
 }
