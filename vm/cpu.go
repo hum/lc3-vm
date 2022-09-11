@@ -24,7 +24,6 @@ func GetCPU(ram *RAM) *CPU {
 
 func (cpu *CPU) Run() {
 	cpu.reg[R_PC] = cpu.startPosition
-	cpu
 
 instr_loop:
 	for {
