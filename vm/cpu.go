@@ -9,6 +9,10 @@ const (
 	PC_START uint16 = 0x3000 // program counter starting register
 )
 
+var (
+	running = 1
+)
+
 type CPU struct {
 	RAM           *RAM
 	reg           [R_COUNT]uint16
@@ -26,7 +30,7 @@ func (cpu *CPU) Run() {
 	cpu.reg[R_PC] = cpu.startPosition
 
 instr_loop:
-	for {
+	for running {
 		var instr uint16
 		if instr, err := cpu.RAM.MemRead(cpu.reg[R_PC]); err != nil {
 			log.Printf("WARNING: MEM_READ out of range for value %x", instr)
@@ -65,12 +69,12 @@ instr_loop:
 		case OP_TRAP:
 			switch instr & 0xFF {
 			case TRAP_GETC:
-				cpu.trapGetC(op)
+				cpu.trapGetC()
 				break
 			case TRAP_OUT:
-				cpu.trapOut(op)
+				cpu.trapOut()
 			case TRAP_PUTS:
-				cpu.trapPuts(op)
+				cpu.trapPuts()
 			case TRAP_IN:
 				break
 			case TRAP_PUTSP:
@@ -244,7 +248,7 @@ func (cpu *CPU) trapOut(instr uint16) {
 	fmt.Printf("%c\n", rune(cpu.reg[R_R0]))
 }
 
-func (cpu *CPU) trapPuts(instr uint16) {
+func (cpu *CPU) trapPuts() {
 	var addr uint16 = cpu.reg[R_R0] // beginning of the memory
 	var bout []uint16               // output bytes
 
@@ -267,7 +271,7 @@ func (cpu *CPU) trapPuts(instr uint16) {
 	WriteString(bout)
 }
 
-func (cpu *CPU) trapGetC(instr uint16) {
+func (cpu *CPU) trapGetC() {
 	// Syscall to get char from STDIN
 	ch, err := GetChar()
 	if err != nil {
@@ -275,4 +279,13 @@ func (cpu *CPU) trapGetC(instr uint16) {
 	}
 	cpu.reg[R_R0] = uint16(ch)
 	cpu.updateFlags(cpu.reg[R_R0])
+}
+
+func (cpu *CPU) trapOut() {
+	WriteChar(cpu.reg[R_R0])
+}
+
+func (cpu *CPU) trapHalt() {
+	log.Println("Halting the program")
+	running = 0
 }
