@@ -2,10 +2,11 @@ package vm
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 )
 
-func GetChar() error {
+func GetChar() (rune, error) {
 	// Reads a single character (rune) from STDIN
 	r := bufio.NewReader(os.Stdin)
 	ch, _, err := r.ReadRune()
@@ -22,4 +23,12 @@ func WriteChar(ch rune) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func WriteString(bb []uint16) {
+	// Write a slice of values to STDOUT
+	for b := range bb {
+		fmt.Printf("%c", rune(b))
+	}
+	fmt.Printf("\n")
 }

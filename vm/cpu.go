@@ -246,6 +246,7 @@ func (cpu *CPU) trapOut(instr uint16) {
 
 func (cpu *CPU) trapPuts(instr uint16) {
 	var addr uint16 = cpu.reg[R_R0] // beginning of the memory
+	var bout []uint16               // output bytes
 
 	for {
 		// Read from memory
@@ -254,19 +255,24 @@ func (cpu *CPU) trapPuts(instr uint16) {
 			panic(err)
 		}
 
-		// Stop print if exit bits
+		// Break if null byte
 		if ch == 0x00 {
 			break
 		}
 
-		// Convert to rune to display the character in terminal
-		fmt.Printf("%c", rune(ch))
+		// Append value to
+		bout = append(bout, ch)
 	}
-	fmt.Printf("\n")
+	// Syscall to write to STDOUT
+	WriteString(bout)
 }
 
 func (cpu *CPU) trapGetC(instr uint16) {
-	// TODO:
-	// Implement similar func to getchar in C
-	return
+	// Syscall to get char from STDIN
+	ch, err := GetChar()
+	if err != nil {
+		panic(err)
+	}
+	cpu.reg[R_R0] = uint16(ch)
+	cpu.updateFlags(cpu.reg[R_R0])
 }
