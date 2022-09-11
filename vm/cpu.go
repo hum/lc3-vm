@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"fmt"
 	"log"
 )
 
@@ -23,6 +24,7 @@ func GetCPU(ram *RAM) *CPU {
 
 func (cpu *CPU) Run() {
 	cpu.reg[R_PC] = cpu.startPosition
+	cpu
 
 instr_loop:
 	for {
@@ -32,7 +34,6 @@ instr_loop:
 			break
 		}
 		cpu.reg[R_PC] = cpu.reg[R_PC] + 1
-
 		var op uint16 = instr >> 12
 		log.Printf("instr: %x, OP CODE: %x", instr, op)
 		switch op {
@@ -65,11 +66,12 @@ instr_loop:
 		case OP_TRAP:
 			switch instr & 0xFF {
 			case TRAP_GETC:
+				cpu.trapGetC(op)
 				break
 			case TRAP_OUT:
-				break
+				cpu.trapOut(op)
 			case TRAP_PUTS:
-				break
+				cpu.trapPuts(op)
 			case TRAP_IN:
 				break
 			case TRAP_PUTSP:
@@ -236,4 +238,36 @@ func (cpu *CPU) storeRegister(instr uint16) {
 	var memOffset uint16 = cpu.signExtend(instr&0x3F, 6)
 
 	cpu.RAM.MemWrite(cpu.reg[r1]+memOffset, cpu.reg[r0])
+}
+
+func (cpu *CPU) trapOut(instr uint16) {
+	// Output a single character from the first register
+	fmt.Printf("%c\n", rune(cpu.reg[R_R0]))
+}
+
+func (cpu *CPU) trapPuts(instr uint16) {
+	var addr uint16 = cpu.reg[R_R0] // beginning of the memory
+
+	for {
+		// Read from memory
+		ch, err := cpu.RAM.MemRead(addr)
+		if err != nil {
+			panic(err)
+		}
+
+		// Stop print if exit bits
+		if ch == 0x00 {
+			break
+		}
+
+		// Convert to rune to display the character in terminal
+		fmt.Printf("%c", rune(ch))
+	}
+	fmt.Printf("\n")
+}
+
+func (cpu *CPU) trapGetC(instr uint16) {
+	// TODO:
+	// Implement similar func to getchar in C
+	return
 }
