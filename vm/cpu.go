@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"fmt"
 	"log"
 )
 
@@ -30,7 +29,7 @@ func (cpu *CPU) Run() {
 	cpu.reg[R_PC] = cpu.startPosition
 
 instr_loop:
-	for running {
+	for running != 0 {
 		var instr uint16
 		if instr, err := cpu.RAM.MemRead(cpu.reg[R_PC]); err != nil {
 			log.Printf("WARNING: MEM_READ out of range for value %x", instr)
@@ -243,11 +242,6 @@ func (cpu *CPU) storeRegister(instr uint16) {
 	cpu.RAM.MemWrite(cpu.reg[r1]+memOffset, cpu.reg[r0])
 }
 
-func (cpu *CPU) trapOut(instr uint16) {
-	// Output a single character from the first register
-	fmt.Printf("%c\n", rune(cpu.reg[R_R0]))
-}
-
 func (cpu *CPU) trapPuts() {
 	var addr uint16 = cpu.reg[R_R0] // beginning of the memory
 	var bout []uint16               // output bytes
@@ -279,7 +273,7 @@ func (cpu *CPU) trapPutsP() {
 		WriteChar(rune(c1))
 
 		var c2 uint16 = ch >> 8
-		if c2 {
+		if c2 == 1 {
 			WriteChar(rune(c2))
 		}
 	}
@@ -296,7 +290,7 @@ func (cpu *CPU) trapGetC() {
 }
 
 func (cpu *CPU) trapOut() {
-	WriteChar(cpu.reg[R_R0])
+	WriteChar(rune(cpu.reg[R_R0]))
 }
 
 func (cpu *CPU) trapHalt() {
