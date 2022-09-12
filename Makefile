@@ -8,8 +8,8 @@ run: build
 	./bin/lc3_vm
 
 build:
-	go build -v -o bin/lc3_vm main.go
+	go build -v -o bin/lc3_vm *.go
 
 build_exec:
-	env CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(LD_FLAGS) -o bin/lc3_vm_opt main.go
+	env CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(LD_FLAGS) -o bin/lc3_vm_opt *.go
 
