@@ -1,32 +1,33 @@
 package vm
 
-import (
-	"fmt"
-)
+import "fmt"
 
-const MemSize uint16 = 65535
+const MemSize uint32 = 65536
 
 type RAM struct {
-	mem []uint16
+	mem [MemSize]uint16
 }
 
-func GetRAM() *RAM {
+func GetRAM(memoryBuffer [MemSize]uint16) *RAM {
 	return &RAM{
-		mem: make([]uint16, MemSize),
+		mem: memoryBuffer,
 	}
 }
 
-func (r *RAM) MemRead(addr uint16) (uint16, error) {
-	if addr >= MemSize {
-		return 0, fmt.Errorf("addr %x is not within range %x", addr, MemSize)
-	}
-	return r.mem[addr], nil
+func (r *RAM) MemRead(addr uint16) uint16 {
+	return r.mem[addr]
 }
 
 func (r *RAM) MemWrite(addr uint16, value uint16) (ok bool) {
-	if addr >= MemSize {
-		return false
-	}
 	r.mem[addr] = value
 	return true
+}
+
+func (r *RAM) Dump() {
+	for i, v := range r.mem {
+		if v == 0 {
+			continue
+		}
+		fmt.Printf("index: %d, value: %d", i, v)
+	}
 }
