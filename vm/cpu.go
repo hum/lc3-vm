@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	PC_START uint16 = 0x3000 // program counter starting register
+	PC_START = 0x3000 // program counter starting register
 )
 
 var (
@@ -13,7 +13,7 @@ var (
 )
 
 type CPU struct {
-	RAM           *RAM
+	ram           *RAM
 	reg           [R_COUNT]uint16
 	startPosition uint16
 }
@@ -21,23 +21,28 @@ type CPU struct {
 func GetCPU(ram *RAM) *CPU {
 	return &CPU{
 		startPosition: PC_START,
-		RAM:           ram,
+		ram:           ram,
+		reg:           [R_COUNT]uint16{},
 	}
 }
 
 func (cpu *CPU) Run() {
+	cpu.reg[R_COND] = FL_ZRO
 	cpu.reg[R_PC] = cpu.startPosition
 
 instr_loop:
 	for running != 0 {
-		var instr uint16
-		if instr, err := cpu.RAM.MemRead(cpu.reg[R_PC]); err != nil {
-			log.Printf("WARNING: MEM_READ out of range for value %x", instr)
-			break
-		}
-		cpu.reg[R_PC] = cpu.reg[R_PC] + 1
+		instr := cpu.ram.MemRead(cpu.reg[R_PC])
+
+		// Increment the counter
+		cpu.reg[R_PC] += 1
+
+		// Get the instruction code
 		var op uint16 = instr >> 12
-		log.Printf("instr: %x, OP CODE: %x", instr, op)
+		if op != 0 {
+			log.Printf("instr: 0x%04X, OP CODE: %d, R_PC: %d\n", instr, op, cpu.reg[R_PC])
+		}
+
 		switch op {
 		case OP_BR:
 			cpu.branch(op)
@@ -69,13 +74,12 @@ instr_loop:
 			switch instr & 0xFF {
 			case TRAP_GETC:
 				cpu.trapGetC()
-				break
 			case TRAP_OUT:
 				cpu.trapOut()
 			case TRAP_PUTS:
 				cpu.trapPuts()
 			case TRAP_IN:
-				break
+				cpu.trapIn()
 			case TRAP_PUTSP:
 				cpu.trapPutsP()
 			case TRAP_HALT:
@@ -138,15 +142,7 @@ func (cpu *CPU) loadIndirect(instr uint16) {
 	var offset uint16 = cpu.signExtend((instr & 0x1FF), 9)
 
 	// Add offset to PC, peek memory to get the final pointer address
-	finalMem, err := cpu.RAM.MemRead(cpu.reg[R_PC] + offset)
-	if err != nil {
-		panic(err)
-	}
-	v, err := cpu.RAM.MemRead(finalMem)
-	if err != nil {
-		panic(err)
-	}
-	cpu.reg[r0] = v
+	cpu.reg[r0] = cpu.ram.MemRead(cpu.ram.MemRead(cpu.reg[R_PC] + offset))
 }
 
 func (cpu *CPU) store(instr uint16) {
@@ -154,7 +150,7 @@ func (cpu *CPU) store(instr uint16) {
 	var pcOffset uint16 = cpu.signExtend(instr&0x1FF, 9)
 
 	// Stores value into mem from the first register
-	cpu.RAM.MemWrite(cpu.reg[R_PC]+pcOffset, cpu.reg[r0])
+	cpu.ram.MemWrite(cpu.reg[R_PC]+pcOffset, cpu.reg[r0])
 }
 
 func (cpu *CPU) jump(instr uint16) {
@@ -208,10 +204,8 @@ func (cpu *CPU) loadRegister(instr uint16) {
 	var r1 uint16 = (instr >> 6) & 0x7
 	var memOffset uint16 = cpu.signExtend(instr&0x3F, 6)
 
-	v, err := cpu.RAM.MemRead(cpu.reg[r1] + memOffset)
-	if err != nil {
-		panic(err)
-	}
+	v := cpu.ram.MemRead(cpu.reg[r1] + memOffset)
+
 	cpu.reg[r0] = v
 	cpu.updateFlags(R_R0)
 }
@@ -227,11 +221,8 @@ func (cpu *CPU) loadEffectiveAddress(instr uint16) {
 func (cpu *CPU) storeIndirect(instr uint16) {
 	var r0 uint16 = (instr >> 9) & 0x7
 	var pcOffset uint16 = cpu.signExtend(instr&0x1FF, 9)
-	v, err := cpu.RAM.MemRead(cpu.reg[R_PC] + pcOffset)
-	if err != nil {
-		panic(err)
-	}
-	cpu.RAM.MemWrite(v, cpu.reg[r0])
+	v := cpu.ram.MemRead(cpu.reg[R_PC] + pcOffset)
+	cpu.ram.MemWrite(v, cpu.reg[r0])
 }
 
 func (cpu *CPU) storeRegister(instr uint16) {
@@ -239,7 +230,7 @@ func (cpu *CPU) storeRegister(instr uint16) {
 	var r1 uint16 = (instr >> 6) & 0x7
 	var memOffset uint16 = cpu.signExtend(instr&0x3F, 6)
 
-	cpu.RAM.MemWrite(cpu.reg[r1]+memOffset, cpu.reg[r0])
+	cpu.ram.MemWrite(cpu.reg[r1]+memOffset, cpu.reg[r0])
 }
 
 func (cpu *CPU) trapPuts() {
@@ -247,18 +238,12 @@ func (cpu *CPU) trapPuts() {
 	var bout []uint16               // output bytes
 
 	for {
-		// Read from memory
-		ch, err := cpu.RAM.MemRead(addr)
-		if err != nil {
-			panic(err)
-		}
+		ch := cpu.ram.MemRead(addr)
 
 		// Break if null byte
 		if ch == 0x00 {
 			break
 		}
-
-		// Append value to
 		bout = append(bout, ch)
 	}
 	// Syscall to write to STDOUT
