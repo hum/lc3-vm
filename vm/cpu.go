@@ -34,14 +34,14 @@ instr_loop:
 	for running != 0 {
 		instr := cpu.ram.MemRead(cpu.reg[R_PC])
 
-		// Increment the counter
-		cpu.reg[R_PC] += 1
-
 		// Get the instruction code
 		var op uint16 = instr >> 12
 		if op != 0 {
 			log.Printf("instr: 0x%04X, OP CODE: %d, R_PC: %d\n", instr, op, cpu.reg[R_PC])
 		}
+
+		// Increment the counter
+		cpu.reg[R_PC] += 1
 
 		switch op {
 		case OP_BR:
@@ -70,7 +70,11 @@ instr_loop:
 			cpu.storeIndirect(op)
 		case OP_JMP:
 			cpu.jump(op)
+		case OP_RES:
+		case OP_RTI:
 		case OP_TRAP:
+			cpu.reg[R_R7] = cpu.reg[R_PC]
+
 			switch instr & 0xFF {
 			case TRAP_GETC:
 				cpu.trapGetC()
@@ -85,8 +89,6 @@ instr_loop:
 			case TRAP_HALT:
 				cpu.trapHalt()
 			}
-		case OP_RES:
-		case OP_RTI:
 		default:
 			log.Printf("ERROR: Invalid OP code %x. Quitting.", op)
 			break instr_loop
@@ -133,7 +135,7 @@ func (cpu *CPU) add(instr uint16) {
 		var r2 uint16 = instr & 0x7
 		cpu.reg[r0] = cpu.reg[r1] + cpu.reg[r2]
 	}
-	cpu.updateFlags(R_R0)
+	cpu.updateFlags(r0)
 }
 
 func (cpu *CPU) loadIndirect(instr uint16) {
@@ -178,7 +180,7 @@ func (cpu *CPU) bitwiseAnd(instr uint16) {
 		// AND the values
 		cpu.reg[r0] = cpu.reg[r1] & cpu.reg[r2]
 	}
-	cpu.updateFlags(R_R0)
+	cpu.updateFlags(r0)
 }
 
 func (cpu *CPU) branch(instr uint16) {
@@ -196,7 +198,7 @@ func (cpu *CPU) bitwiseNot(instr uint16) {
 
 	// Bitwise complement
 	cpu.reg[r0] = ^cpu.reg[r1] // Using XOR instead
-	cpu.updateFlags(R_R0)
+	cpu.updateFlags(r0)
 }
 
 func (cpu *CPU) loadRegister(instr uint16) {
@@ -207,7 +209,7 @@ func (cpu *CPU) loadRegister(instr uint16) {
 	v := cpu.ram.MemRead(cpu.reg[r1] + memOffset)
 
 	cpu.reg[r0] = v
-	cpu.updateFlags(R_R0)
+	cpu.updateFlags(r0)
 }
 
 func (cpu *CPU) loadEffectiveAddress(instr uint16) {
@@ -215,7 +217,7 @@ func (cpu *CPU) loadEffectiveAddress(instr uint16) {
 	var pcOffset uint16 = cpu.signExtend(instr&0x1FF, 9)
 
 	cpu.reg[r0] = cpu.reg[R_PC] + pcOffset
-	cpu.updateFlags(R_R0)
+	cpu.updateFlags(r0)
 }
 
 func (cpu *CPU) storeIndirect(instr uint16) {
