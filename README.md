@@ -5,10 +5,10 @@ There's a few examples of assembly projects in the `/asm/` folder
 
 ### Hello World
 ```asm
-.ORIG x3000                         # Address of the first instruction
-HELLO_STR .STRINGZ "Hello, World!"  # Define "Hello, World!" string
-LEA R0, HELLO_STR                   # Load address of HELLO_STR to R0
-PUTS                                # Print R0 to STDOUT
-HALT                                # Halt program
+.ORIG x3000                         ; Address of the first instruction
+HELLO_STR .STRINGZ "Hello, World!"  ; Define "Hello, World!" string
+LEA R0, HELLO_STR                   ; Load address of HELLO_STR to R0
+PUTs                                ; Print R0 to STDOUT
+HALT                                ; Halt program
 .END
 ```
