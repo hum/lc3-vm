@@ -5,7 +5,7 @@ LD_FLAGS := -ldflags="-s -w -X 'main.BuildDate=$(shell date)'"
 
 run: build
 	chmod +x bin/lc3_vm
-	./bin/lc3_vm ./obj/2048.obj
+	./bin/lc3_vm ./obj/hello-world.obj
 
 build:
 	go build -v -o bin/lc3_vm *.go
@@ -13,3 +13,5 @@ build:
 build_exec:
 	env CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(LD_FLAGS) -o bin/lc3_vm_opt *.go
 
+test:
+	go test -v ./...
