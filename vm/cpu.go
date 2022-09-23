@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	PC_START = 0x3000 // program counter starting register
+	PC_START = 0x3000 // Program counter starting register
 )
 
 var (
@@ -26,6 +26,18 @@ func GetCPU(ram *RAM) *CPU {
 	}
 }
 
+// Helper function
+func (cpu *CPU) MemDump() {
+	cpu.ram.Dump()
+}
+
+// Helper function
+func (cpu *CPU) RegDump() {
+	for i, v := range cpu.reg {
+		log.Printf("R%d: 0x%04x", i, v)
+	}
+}
+
 func (cpu *CPU) Run() {
 	cpu.reg[R_COND] = FL_ZRO
 	cpu.reg[R_PC] = cpu.startPosition
@@ -36,9 +48,10 @@ instr_loop:
 
 		// Get the instruction code
 		var op uint16 = instr >> 12
-		if op != 0 {
-			log.Printf("instr: 0x%04X, OP CODE: %d, R_PC: %d\n", instr, op, cpu.reg[R_PC])
-		}
+		log.Printf("addr=0x%04x, op: 0x%04x", cpu.reg[R_PC], op)
+
+		cpu.MemDump()
+		cpu.RegDump()
 
 		// Increment the counter
 		cpu.reg[R_PC] += 1
@@ -77,16 +90,22 @@ instr_loop:
 
 			switch instr & 0xFF {
 			case TRAP_GETC:
+				log.Println("getc")
 				cpu.trapGetC()
 			case TRAP_OUT:
+				log.Println("out")
 				cpu.trapOut()
 			case TRAP_PUTS:
+				log.Println("puts")
 				cpu.trapPuts()
 			case TRAP_IN:
+				log.Println("in")
 				cpu.trapIn()
 			case TRAP_PUTSP:
+				log.Println("putsp")
 				cpu.trapPutsP()
 			case TRAP_HALT:
+				log.Println("halt")
 				cpu.trapHalt()
 			}
 		default:
@@ -241,12 +260,13 @@ func (cpu *CPU) trapPuts() {
 
 	for {
 		ch := cpu.ram.MemRead(addr)
-
-		// Break if null byte
+		log.Printf("Reading rune: 0x%04x", ch)
+		// Ending rune
 		if ch == 0x00 {
 			break
 		}
-		bout = append(bout, ch)
+		WriteChar(ch)
+		addr++
 	}
 	// Syscall to write to STDOUT
 	WriteString(bout)
@@ -257,11 +277,11 @@ func (cpu *CPU) trapPutsP() {
 
 	for {
 		var c1 uint16 = ch & 0xFF
-		WriteChar(rune(c1))
+		WriteChar(c1)
 
 		var c2 uint16 = ch >> 8
 		if c2 == 1 {
-			WriteChar(rune(c2))
+			WriteChar(c2)
 		}
 	}
 }
@@ -277,7 +297,7 @@ func (cpu *CPU) trapGetC() {
 }
 
 func (cpu *CPU) trapOut() {
-	WriteChar(rune(cpu.reg[R_R0]))
+	WriteChar(cpu.reg[R_R0])
 }
 
 func (cpu *CPU) trapHalt() {
