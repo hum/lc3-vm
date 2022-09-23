@@ -13,11 +13,11 @@ const (
 	MEM_SIZE    = 65536 // Total memory limit
 )
 
-func readFile(fn string) ([MEM_SIZE]uint16, error) {
+func ReadObj(fp string) ([MEM_SIZE]uint16, error) {
 	// Final memory buffer
 	var memoryBuffer [MEM_SIZE]uint16
 
-	f, err := os.Open(fn)
+	f, err := os.Open(fp)
 	if err != nil {
 		return memoryBuffer, err
 	}
@@ -33,9 +33,9 @@ func readFile(fn string) ([MEM_SIZE]uint16, error) {
 
 	// The header is 16 bits long
 	hBytes := make([]byte, HEADER_SIZE)
-	s, err := f.Read(hBytes)
-	if s != HEADER_SIZE {
-		return memoryBuffer, fmt.Errorf("reader returned more bytes than requested. wanted %d bytes, got %d", HEADER_SIZE, s)
+	n, err := f.Read(hBytes)
+	if n != HEADER_SIZE {
+		return memoryBuffer, fmt.Errorf("reader returned more bytes than requested. wanted %d bytes, got %d", HEADER_SIZE, n)
 	}
 
 	// Starting address of the program
@@ -43,6 +43,9 @@ func readFile(fn string) ([MEM_SIZE]uint16, error) {
 
 	// Read the address from the header buffer
 	hBuffer := bytes.NewBuffer(hBytes)
+
+	// Since the target type is uint16 this will read 2 bytes from the file
+	// Which is our header
 	err = binary.Read(hBuffer, binary.BigEndian, &origin)
 	if err != nil {
 		return memoryBuffer, err
@@ -62,15 +65,20 @@ func readFile(fn string) ([MEM_SIZE]uint16, error) {
 
 	// Buffered reader for the rest of the file
 	b := bytes.NewBuffer(fileByteSlice)
+	bufferLength := len(b.Bytes())
+	log.Printf("size of the buffer is: %d", bufferLength)
 
-	for i := origin; i < MEM_SIZE-1; i++ {
+	for i := 0; i < bufferLength; i++ {
 		var v uint16
-
 		// LC-3 is a big-endian computer
-		binary.Read(b, binary.BigEndian, &v)
+		err := binary.Read(b, binary.BigEndian, &v)
+		if err != nil {
+			break
+		}
 
 		// Save each value into the memory buffer
-		memoryBuffer[i] = v
+		memoryBuffer[origin] = v
+		origin++
 	}
 	return memoryBuffer, nil
 }
