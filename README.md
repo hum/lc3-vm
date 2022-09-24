@@ -1,7 +1,7 @@
 # Little Computer 3
 This repository contains a simple implementation of the [Little Computer 3](https://en.wikipedia.org/wiki/Little_Computer_3). With its simple [instruction set](https://www.jmeiners.com/lc3-vm/supplies/lc3-isa.pdf) the VM is fairly straight-forward and the code speaks for itself.
 
-There's a few examples of assembly projects in the `/asm/` folder
+There's a few examples of assembly projects in the `/asm/` folder.
 
 ### Hello World
 ```asm
@@ -12,3 +12,37 @@ PUTs                                ; Print R0 to STDOUT
 HALT                                ; Halt program
 .END
 ```
+
+To actually run the code, it has to be built into an **.obj** file. Those are included in the `/obj/` folder.
+
+# TODO
+- [ ] Keyboard I/O
+
+Currently the VM only handles a simple hello world program, because it doesn't implement a keyboard input handler.
+
+- [ ] Logging
+
+This section needs the biggest improvement. The only thing that should go into STDOUT is the actual print syscalls made by the programs. Everything else should be a debug log only available under a special flag.
+
+## Run
+Clone the repository
+```bash
+> git clone https://github.com/hum/lc3-vm
+> cd lc3-vm
+```
+
+Build the binary
+```bash
+# or "make run" for the hello world example
+> make build
+```
+
+Run the programs from `/obj/`
+```bash
+> ./bin/lc3_vm ./obj/2048.obj
+```
+
+## Resources
+- [Justin Meiners' blog](https://www.jmeiners.com/lc3-vm)
+- [Instructure Set Document](https://www.jmeiners.com/lc3-vm/supplies/lc3-isa.pdf)
+- [This project doc by BYU](https://students.cs.byu.edu/~cs345ta/labs/P4-Virtual%20Memory.html)
