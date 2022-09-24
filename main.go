@@ -1,40 +1,46 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
-	lc3 "github.com/hum/lc3-vm/vm"
+	"github.com/hum/lc3-vm/vm"
 )
 
 func main() {
+	// TODO:
+	// Add all of the logs into a debug mode instead
+	log.Println("starting LC-3 VM")
+
 	// Check input
 	args := os.Args[1:]
 	if len(args) == 0 {
-		log.Println("No file input specified. Quitting.")
+		fmt.Println("No file input specified. Quitting.")
 		os.Exit(0)
 	}
 
-	// Initialize memory buffer
-	// TODO:
-	// Refactor the ReadObj function to only pass back a slice of bytes
-	// And then fill in the memory buffer as part of the inicialization process
-	// of the VM
-	var memBuffer [MEM_SIZE]uint16 = [MEM_SIZE]uint16{}
-
 	var filename string = args[0]
-	log.Printf("loading \"%s\" image file", filename)
+	log.Printf("loading \"%s\" file into the memory", filename)
 
 	// Load image into the buffer
-	memBuffer, err := ReadObj(filename)
-	if err != nil {
-		panic(err)
+	data, n, err := ReadObjFile(filename)
+	if err != nil || n <= 0 {
+		if err != nil {
+			panic(err)
+		}
+		// TODO:
+		// Better handling of the input in general
+		panic("read file has 0 size")
 	}
 
-	// Init
-	var ram *lc3.RAM = lc3.GetRAM(memBuffer)
-	var cpu *lc3.CPU = lc3.GetCPU(ram)
+	// Load the byte slice into the VM
+	vm.LoadByteSliceBuffer(data, n)
+	log.Printf("loaded %d bytes buffer into the memory", n)
 
-	// Execute
-	cpu.Run()
+	if err := vm.Execute(); err != nil {
+		// Gracefully shutdown the vm
+		fmt.Errorf("vm error: %s", err)
+		os.Exit(0)
+	}
 }

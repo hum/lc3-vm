@@ -1,127 +1,109 @@
 package vm
 
 import (
-	"log"
+	"fmt"
 )
 
 const (
-	PC_START = 0x3000 // Program counter starting register
-)
-
-var (
-	running = 1
+	R_R0 uint16 = iota
+	R_R1
+	R_R2
+	R_R3
+	R_R4
+	R_R5
+	R_R6
+	R_R7
+	R_PC         // Program counter
+	R_COND       // Condition flag
+	R_COUNT = 10 // Count of the registers
 )
 
 type CPU struct {
-	ram           *RAM
-	reg           [R_COUNT]uint16
-	startPosition uint16
+	// Initial address the program loads into
+	ProgramStart uint16
+	// Array of the available cpu.Registeristers
+	Register [R_COUNT]uint16
 }
 
-func GetCPU(ram *RAM) *CPU {
-	return &CPU{
-		startPosition: PC_START,
-		ram:           ram,
-		reg:           [R_COUNT]uint16{},
+func (cpu *CPU) dump() {
+	fmt.Println("dumping CPU registers")
+	for i, v := range cpu.Register {
+		fmt.Printf("R_R%d, value: 0x%04x(%d)\n", i, v, v)
 	}
 }
 
-// Helper function
-func (cpu *CPU) MemDump() {
-	cpu.ram.Dump()
-}
-
-// Helper function
-func (cpu *CPU) RegDump() {
-	for i, v := range cpu.reg {
-		log.Printf("R%d: 0x%04x", i, v)
-	}
-}
-
-func (cpu *CPU) Run() {
-	cpu.reg[R_COND] = FL_ZRO
-	cpu.reg[R_PC] = cpu.startPosition
+func (cpu *CPU) Execute() error {
+	cpu.Register[R_COND] = FL_ZRO
 
 instr_loop:
-	for running != 0 {
-		instr := cpu.ram.MemRead(cpu.reg[R_PC])
-
-		// Get the instruction code
+	for {
+		// Fetch the instruction
+		var instr uint16 = ram.Read(cpu.Register[R_PC])
+		// Get the instruction's OP code
 		var op uint16 = instr >> 12
-		log.Printf("addr=0x%04x, op: 0x%04x", cpu.reg[R_PC], op)
-
-		cpu.MemDump()
-		cpu.RegDump()
 
 		// Increment the counter
-		cpu.reg[R_PC] += 1
+		cpu.Register[R_PC] += 1
 
 		switch op {
 		case OP_BR:
-			cpu.branch(op)
+			cpu.branch(instr)
 		case OP_ADD:
-			cpu.add(op)
+			cpu.add(instr)
 		case OP_LD:
-			cpu.loadIndirect(op)
+			cpu.loadIndirect(instr)
 		case OP_JSR:
-			cpu.jump(op)
+			cpu.jump(instr)
 		case OP_AND:
-			cpu.bitwiseAnd(op)
+			cpu.bitwiseAnd(instr)
 		case OP_NOT:
-			cpu.bitwiseNot(op)
+			cpu.bitwiseNot(instr)
 		case OP_LDR:
-			cpu.loadRegister(op)
+			cpu.loadRegister(instr)
 		case OP_LEA:
-			cpu.loadEffectiveAddress(op)
+			cpu.loadEffectiveAddress(instr)
 		case OP_LDI:
-			cpu.loadIndirect(op)
+			cpu.loadIndirect(instr)
 		case OP_ST:
-			cpu.store(op)
+			cpu.store(instr)
 		case OP_STR:
-			cpu.storeRegister(op)
+			cpu.storeRegister(instr)
 		case OP_STI:
-			cpu.storeIndirect(op)
+			cpu.storeIndirect(instr)
 		case OP_JMP:
-			cpu.jump(op)
+			cpu.jump(instr)
 		case OP_RES:
 		case OP_RTI:
 		case OP_TRAP:
-			cpu.reg[R_R7] = cpu.reg[R_PC]
+			cpu.Register[R_R7] = cpu.Register[R_PC]
 
 			switch instr & 0xFF {
 			case TRAP_GETC:
-				log.Println("getc")
 				cpu.trapGetC()
 			case TRAP_OUT:
-				log.Println("out")
 				cpu.trapOut()
 			case TRAP_PUTS:
-				log.Println("puts")
 				cpu.trapPuts()
 			case TRAP_IN:
-				log.Println("in")
 				cpu.trapIn()
 			case TRAP_PUTSP:
-				log.Println("putsp")
 				cpu.trapPutsP()
 			case TRAP_HALT:
-				log.Println("halt")
-				cpu.trapHalt()
+				break instr_loop
 			}
 		default:
-			log.Printf("ERROR: Invalid OP code %x. Quitting.", op)
-			break instr_loop
+			return fmt.Errorf("invalid OP code %x", op)
 		}
 	}
+	return nil
 }
 
 func (cpu *CPU) signExtend(x uint16, bitCount int) uint16 {
-	/* extends bits to size 16
-	fill positive with 0
-	fill negative with 1
-	*/
-	if (x >> (bitCount - 1) & 1) > 0 {
-		x |= (0xFFFF << bitCount)
+	// Extends bits to the size 16
+	// Fills positive with 0
+	// Fills negative with 1
+	if (x >> (bitCount - 1) & 1) == 1 {
+		x |= 0xFFFF << bitCount
 	}
 	return x
 }
@@ -129,14 +111,14 @@ func (cpu *CPU) signExtend(x uint16, bitCount int) uint16 {
 func (cpu *CPU) updateFlags(r uint16) {
 	// Default sign is positive
 	var sign uint16 = FL_POS
-	if cpu.reg[r] == 0 {
+	if cpu.Register[r] == 0 {
 		// If value in the register is zero
 		sign = FL_ZRO
-	} else if (cpu.reg[r] >> 15) == 1 {
+	} else if (cpu.Register[r] >> 15) != 0 {
 		// One (1) in the left-most bit indicates negative number
 		sign = FL_NEG
 	}
-	cpu.reg[R_COND] = sign
+	cpu.Register[R_COND] = sign
 }
 
 func (cpu *CPU) add(instr uint16) {
@@ -149,21 +131,21 @@ func (cpu *CPU) add(instr uint16) {
 
 	if immediate_mode != 0 {
 		var imm5 uint16 = cpu.signExtend((instr & 0x1F), 5)
-		cpu.reg[r0] = cpu.reg[r1] + imm5
+		cpu.Register[r0] = cpu.Register[r1] + imm5
 	} else {
 		var r2 uint16 = instr & 0x7
-		cpu.reg[r0] = cpu.reg[r1] + cpu.reg[r2]
+		cpu.Register[r0] = cpu.Register[r1] + cpu.Register[r2]
 	}
 	cpu.updateFlags(r0)
 }
 
 func (cpu *CPU) loadIndirect(instr uint16) {
-	// Loads value from mem into the cpu register
+	// Loads value from mem into the cpu.Registerister
 	var r0 uint16 = (instr >> 9) & 0x7
 	var offset uint16 = cpu.signExtend((instr & 0x1FF), 9)
 
 	// Add offset to PC, peek memory to get the final pointer address
-	cpu.reg[r0] = cpu.ram.MemRead(cpu.ram.MemRead(cpu.reg[R_PC] + offset))
+	cpu.Register[r0] = ram.Read(ram.Read(cpu.Register[R_PC] + offset))
 }
 
 func (cpu *CPU) store(instr uint16) {
@@ -171,7 +153,7 @@ func (cpu *CPU) store(instr uint16) {
 	var pcOffset uint16 = cpu.signExtend(instr&0x1FF, 9)
 
 	// Stores value into mem from the first register
-	cpu.ram.MemWrite(cpu.reg[R_PC]+pcOffset, cpu.reg[r0])
+	ram.Write(cpu.Register[R_PC]+pcOffset, cpu.Register[r0])
 }
 
 func (cpu *CPU) jump(instr uint16) {
@@ -180,7 +162,7 @@ func (cpu *CPU) jump(instr uint16) {
 	var r1 uint16 = (instr >> 6) & 0x7
 
 	// Move program counter to the value of second register
-	cpu.reg[R_PC] = cpu.reg[r1]
+	cpu.Register[R_PC] = cpu.Register[r1]
 }
 
 func (cpu *CPU) bitwiseAnd(instr uint16) {
@@ -192,12 +174,12 @@ func (cpu *CPU) bitwiseAnd(instr uint16) {
 		// Sign extend to 16 bits
 		var imm5 uint16 = cpu.signExtend(instr&0x1F, 5)
 		// AND the values
-		cpu.reg[r0] = cpu.reg[r1] & imm5
+		cpu.Register[r0] = cpu.Register[r1] & imm5
 	} else {
 		// Get value from SR2
 		var r2 uint16 = instr & 0x7
 		// AND the values
-		cpu.reg[r0] = cpu.reg[r1] & cpu.reg[r2]
+		cpu.Register[r0] = cpu.Register[r1] & cpu.Register[r2]
 	}
 	cpu.updateFlags(r0)
 }
@@ -206,8 +188,8 @@ func (cpu *CPU) branch(instr uint16) {
 	var pcOffset uint16 = cpu.signExtend(instr&0x1FF, 9)
 	var condFlag uint16 = (instr >> 9) & 0x7
 
-	if condFlag&cpu.reg[R_COND] == 1 {
-		cpu.reg[R_PC] += pcOffset
+	if condFlag&cpu.Register[R_COND] == 1 {
+		cpu.Register[R_PC] += pcOffset
 	}
 }
 
@@ -216,7 +198,7 @@ func (cpu *CPU) bitwiseNot(instr uint16) {
 	var r1 uint16 = (instr >> 6) & 0x7
 
 	// Bitwise complement
-	cpu.reg[r0] = ^cpu.reg[r1] // Using XOR instead
+	cpu.Register[r0] = ^cpu.Register[r1] // Using XOR instead
 	cpu.updateFlags(r0)
 }
 
@@ -225,25 +207,27 @@ func (cpu *CPU) loadRegister(instr uint16) {
 	var r1 uint16 = (instr >> 6) & 0x7
 	var memOffset uint16 = cpu.signExtend(instr&0x3F, 6)
 
-	v := cpu.ram.MemRead(cpu.reg[r1] + memOffset)
+	v := ram.Read(cpu.Register[r1] + memOffset)
 
-	cpu.reg[r0] = v
+	cpu.Register[r0] = v
 	cpu.updateFlags(r0)
 }
 
 func (cpu *CPU) loadEffectiveAddress(instr uint16) {
 	var r0 uint16 = (instr >> 9) & 0x7
 	var pcOffset uint16 = cpu.signExtend(instr&0x1FF, 9)
+	// Final value being stored
+	var value uint16 = cpu.Register[R_PC] + pcOffset
 
-	cpu.reg[r0] = cpu.reg[R_PC] + pcOffset
+	cpu.Register[r0] = value
 	cpu.updateFlags(r0)
 }
 
 func (cpu *CPU) storeIndirect(instr uint16) {
 	var r0 uint16 = (instr >> 9) & 0x7
 	var pcOffset uint16 = cpu.signExtend(instr&0x1FF, 9)
-	v := cpu.ram.MemRead(cpu.reg[R_PC] + pcOffset)
-	cpu.ram.MemWrite(v, cpu.reg[r0])
+	v := ram.Read(cpu.Register[R_PC] + pcOffset)
+	ram.Write(v, cpu.Register[r0])
 }
 
 func (cpu *CPU) storeRegister(instr uint16) {
@@ -251,29 +235,29 @@ func (cpu *CPU) storeRegister(instr uint16) {
 	var r1 uint16 = (instr >> 6) & 0x7
 	var memOffset uint16 = cpu.signExtend(instr&0x3F, 6)
 
-	cpu.ram.MemWrite(cpu.reg[r1]+memOffset, cpu.reg[r0])
+	ram.Write(cpu.Register[r1]+memOffset, cpu.Register[r0])
 }
 
 func (cpu *CPU) trapPuts() {
-	var addr uint16 = cpu.reg[R_R0] // beginning of the memory
-	var bout []uint16               // output bytes
+	var addr uint16 = cpu.Register[R_R0] // beginning of the memory
 
 	for {
-		ch := cpu.ram.MemRead(addr)
-		log.Printf("Reading rune: 0x%04x", ch)
+		ch := ram.Read(addr)
 		// Ending rune
 		if ch == 0x00 {
+			// n = 10 is the code for '\n'
+			WriteChar(uint16(10))
 			break
 		}
 		WriteChar(ch)
 		addr++
 	}
 	// Syscall to write to STDOUT
-	WriteString(bout)
+	//WriteString(bout)
 }
 
 func (cpu *CPU) trapPutsP() {
-	var ch uint16 = cpu.reg[R_R0]
+	var ch uint16 = cpu.Register[R_R0]
 
 	for {
 		var c1 uint16 = ch & 0xFF
@@ -292,17 +276,12 @@ func (cpu *CPU) trapGetC() {
 	if err != nil {
 		panic(err)
 	}
-	cpu.reg[R_R0] = uint16(ch)
+	cpu.Register[R_R0] = uint16(ch)
 	cpu.updateFlags(R_R0)
 }
 
 func (cpu *CPU) trapOut() {
-	WriteChar(cpu.reg[R_R0])
-}
-
-func (cpu *CPU) trapHalt() {
-	log.Println("Halting the program")
-	running = 0
+	WriteChar(cpu.Register[R_R0])
 }
 
 func (cpu *CPU) trapIn() {
@@ -310,6 +289,6 @@ func (cpu *CPU) trapIn() {
 	if err != nil {
 		panic(err)
 	}
-	cpu.reg[R_R0] = uint16(c)
+	cpu.Register[R_R0] = uint16(c)
 	cpu.updateFlags(R_R0)
 }
