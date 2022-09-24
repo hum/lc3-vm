@@ -26,7 +26,7 @@ type CPU struct {
 }
 
 func (cpu *CPU) dump() {
-	fmt.Println("dumping CPU registers")
+	fmt.Println("\ndumping CPU registers")
 	for i, v := range cpu.Register {
 		fmt.Printf("R_R%d, value: 0x%04x(%d)\n", i, v, v)
 	}
@@ -43,7 +43,7 @@ instr_loop:
 		var op uint16 = instr >> 12
 
 		// Increment the counter
-		cpu.Register[R_PC] += 1
+		cpu.Register[R_PC]++
 
 		switch op {
 		case OP_BR:
@@ -89,9 +89,11 @@ instr_loop:
 			case TRAP_PUTSP:
 				cpu.trapPutsP()
 			case TRAP_HALT:
+				Dump()
 				break instr_loop
 			}
 		default:
+			Dump()
 			return fmt.Errorf("invalid OP code %x", op)
 		}
 	}
@@ -252,8 +254,6 @@ func (cpu *CPU) trapPuts() {
 		WriteChar(ch)
 		addr++
 	}
-	// Syscall to write to STDOUT
-	//WriteString(bout)
 }
 
 func (cpu *CPU) trapPutsP() {

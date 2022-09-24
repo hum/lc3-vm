@@ -1,6 +1,6 @@
 package vm
 
-import "log"
+import "fmt"
 
 type RAM struct {
 	// Hard limit for the amount of memory
@@ -10,12 +10,12 @@ type RAM struct {
 }
 
 func (r *RAM) dump() {
-	log.Println("dumping RAM buffer")
+	fmt.Println("\ndumping RAM buffer")
 	for i, v := range r.buffer {
 		if v == 0 {
 			continue
 		}
-		log.Printf("index: 0x%04x(%d), value: 0x%04x(%d)\n", i, i, v, v)
+		fmt.Printf("index: 0x%04x(%d), value: 0x%04x(%d)\n", i, i, v, v)
 	}
 }
 
