@@ -1,6 +1,5 @@
 package vm
 
-// OP CODES
 const (
 	OP_BR   uint16 = iota // branch
 	OP_ADD                // add
