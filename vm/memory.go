@@ -1,10 +1,16 @@
 package vm
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
+
+const (
+	MR_KBSR = 0xFE00 // Keyboard status
+	MR_KBDR = 0xFE02 // Keyboard data
+)
 
 type RAM struct {
-	// Hard limit for the amount of memory
-	memoryLimit uint16
 	// Array for the actual data being stored in the memory
 	buffer [MEM_LIMIT]uint16
 }
@@ -19,8 +25,8 @@ func (r *RAM) dump() {
 	}
 }
 
-func (r *RAM) Write(addr, value uint16) uint16 {
-	if addr >= r.memoryLimit {
+func (r *RAM) Write(addr uint16, value uint16) uint16 {
+	if int(addr) >= len(r.buffer) {
 		panic("program wrote outside of its memory stack")
 	}
 	r.buffer[addr] = value
@@ -28,8 +34,18 @@ func (r *RAM) Write(addr, value uint16) uint16 {
 }
 
 func (r *RAM) Read(addr uint16) uint16 {
-	if addr >= r.memoryLimit {
+	if int(addr) >= len(r.buffer) {
 		panic("program wrote outside of its memory stack")
+	}
+
+	if addr == MR_KBSR {
+		log.Println("waiting for keyboard input")
+		if v := readRuneFromInput(); v != 0 {
+			r.Write(MR_KBSR, 1<<15)
+			r.Write(MR_KBDR, v)
+		} else {
+			r.Write(MR_KBSR, 0)
+		}
 	}
 	return r.buffer[addr]
 }
