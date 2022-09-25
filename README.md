@@ -42,6 +42,16 @@ Run the programs from `/obj/`
 > ./bin/lc3_vm ./obj/2048.obj
 ```
 
+## LC3 Tools
+If you wish to convert your own `.asm` files into `.obj` files then you can do so by downloading the codebase from [here](https://highered.mheducation.com/sites/0072467509/student_view0/lc-3_simulator.html).
+```bash
+> cd lc3tools
+> ./configure --installdir /path/to/loc/
+> make
+> make install
+```
+Now you will have `./lc3as` in your `/path/to/loc/` which you can use to generate the `.obj` files
+
 ## Resources
 - [Justin Meiners' blog](https://www.jmeiners.com/lc3-vm)
 - [Instructure Set Document](https://www.jmeiners.com/lc3-vm/supplies/lc3-isa.pdf)
