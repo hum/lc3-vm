@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	MEM_LIMIT  = 65535  // 16-bit
-	PROG_START = 0x3000 // Memory mapped starting point
+	MEM_LIMIT  = 2 << 15 // 16-bit
+	PROG_START = 0x3000  // Memory mapped starting point
 )
 
 var (
@@ -21,7 +21,7 @@ func Init() {
 		ProgramStart: PROG_START,
 		Register:     [R_COUNT]uint16{R_PC: PROG_START},
 	}
-	ram = &RAM{memoryLimit: MEM_LIMIT}
+	ram = &RAM{}
 }
 
 func Dump() {

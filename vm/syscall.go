@@ -17,7 +17,7 @@ func Uint16ToString(arr []uint16) string {
 func GetChar() (uint16, error) {
 	// Reads a single character (rune) from STDIN
 	r := bufio.NewReader(os.Stdin)
-	ch, _, err := r.ReadRune()
+	ch, err := r.ReadByte()
 	if err != nil {
 		panic(err)
 	}

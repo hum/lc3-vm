@@ -51,9 +51,9 @@ instr_loop:
 		case OP_ADD:
 			cpu.add(instr)
 		case OP_LD:
-			cpu.loadIndirect(instr)
+			cpu.load(instr)
 		case OP_JSR:
-			cpu.jump(instr)
+			cpu.jumpRegister(instr)
 		case OP_AND:
 			cpu.bitwiseAnd(instr)
 		case OP_NOT:
@@ -147,7 +147,9 @@ func (cpu *CPU) loadIndirect(instr uint16) {
 	var offset uint16 = cpu.signExtend((instr & 0x1FF), 9)
 
 	// Add offset to PC, peek memory to get the final pointer address
+
 	cpu.Register[r0] = ram.Read(ram.Read(cpu.Register[R_PC] + offset))
+	cpu.updateFlags(r0)
 }
 
 func (cpu *CPU) store(instr uint16) {
@@ -190,7 +192,7 @@ func (cpu *CPU) branch(instr uint16) {
 	var pcOffset uint16 = cpu.signExtend(instr&0x1FF, 9)
 	var condFlag uint16 = (instr >> 9) & 0x7
 
-	if condFlag&cpu.Register[R_COND] == 1 {
+	if condFlag&cpu.Register[R_COND] != 0 {
 		cpu.Register[R_PC] += pcOffset
 	}
 }
@@ -204,30 +206,35 @@ func (cpu *CPU) bitwiseNot(instr uint16) {
 	cpu.updateFlags(r0)
 }
 
+func (cpu *CPU) load(instr uint16) {
+	var r0 uint16 = (instr >> 9) & 0x7
+	var offset uint16 = cpu.signExtend(instr&0x1FF, 9)
+
+	cpu.Register[r0] = ram.Read(cpu.Register[R_PC] + offset)
+	cpu.updateFlags(r0)
+}
+
 func (cpu *CPU) loadRegister(instr uint16) {
 	var r0 uint16 = (instr >> 9) & 0x7
 	var r1 uint16 = (instr >> 6) & 0x7
 	var memOffset uint16 = cpu.signExtend(instr&0x3F, 6)
 
-	v := ram.Read(cpu.Register[r1] + memOffset)
-
-	cpu.Register[r0] = v
+	cpu.Register[r0] = ram.Read(cpu.Register[r1] + memOffset)
 	cpu.updateFlags(r0)
 }
 
 func (cpu *CPU) loadEffectiveAddress(instr uint16) {
 	var r0 uint16 = (instr >> 9) & 0x7
 	var pcOffset uint16 = cpu.signExtend(instr&0x1FF, 9)
-	// Final value being stored
-	var value uint16 = cpu.Register[R_PC] + pcOffset
 
-	cpu.Register[r0] = value
+	cpu.Register[r0] = cpu.Register[R_PC] + pcOffset
 	cpu.updateFlags(r0)
 }
 
 func (cpu *CPU) storeIndirect(instr uint16) {
 	var r0 uint16 = (instr >> 9) & 0x7
 	var pcOffset uint16 = cpu.signExtend(instr&0x1FF, 9)
+
 	v := ram.Read(cpu.Register[R_PC] + pcOffset)
 	ram.Write(v, cpu.Register[r0])
 }
@@ -240,26 +247,36 @@ func (cpu *CPU) storeRegister(instr uint16) {
 	ram.Write(cpu.Register[r1]+memOffset, cpu.Register[r0])
 }
 
-func (cpu *CPU) trapPuts() {
-	var addr uint16 = cpu.Register[R_R0] // beginning of the memory
+func (cpu *CPU) jumpRegister(instr uint16) {
+	var longFlag uint16 = (instr >> 11) & 1
+	cpu.Register[R_R7] = cpu.Register[R_PC]
 
-	for {
-		ch := ram.Read(addr)
-		// Ending rune
-		if ch == 0x00 {
-			// n = 10 is the code for '\n'
-			WriteChar(uint16(10))
-			break
-		}
+	if longFlag == 1 {
+		var longPCOffset uint16 = cpu.signExtend(instr&0x7FF, 11)
+		cpu.Register[R_PC] += longPCOffset
+	} else {
+		var r1 uint16 = (instr >> 6) & 0x7
+		cpu.Register[R_PC] = cpu.Register[r1]
+	}
+}
+
+func (cpu *CPU) trapPuts() {
+	var origin uint16 = cpu.Register[R_R0]
+	var ch uint16 = ram.Read(origin)
+
+	for ch != 0 {
 		WriteChar(ch)
-		addr++
+
+		origin++
+		ch = ram.Read(origin)
 	}
 }
 
 func (cpu *CPU) trapPutsP() {
-	var ch uint16 = cpu.Register[R_R0]
+	var origin uint16 = cpu.Register[R_R0]
+	var ch uint16 = ram.Read(origin)
 
-	for {
+	for ch != 0 {
 		var c1 uint16 = ch & 0xFF
 		WriteChar(c1)
 
@@ -267,6 +284,8 @@ func (cpu *CPU) trapPutsP() {
 		if c2 == 1 {
 			WriteChar(c2)
 		}
+		origin++
+		ch = ram.Read(origin)
 	}
 }
 
@@ -285,10 +304,12 @@ func (cpu *CPU) trapOut() {
 }
 
 func (cpu *CPU) trapIn() {
+	fmt.Println("Enter a character: ")
 	c, err := GetChar()
 	if err != nil {
 		panic(err)
 	}
+	WriteChar(c)
 	cpu.Register[R_R0] = uint16(c)
 	cpu.updateFlags(R_R0)
 }
