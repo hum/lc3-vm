@@ -16,9 +16,9 @@ HALT                                ; Halt program
 To actually run the code, it has to be built into an **.obj** file. Those are included in the `/obj/` folder.
 
 # TODO
-- [ ] Keyboard I/O
+- [ ] Better keyboard I/O
 
-Currently the VM only handles a simple hello world program, because it doesn't implement a keyboard input handler.
+The VM doesn't automatically send the keyboard input from the syscall, it waits for the user to press enter.
 
 - [ ] Logging
 
